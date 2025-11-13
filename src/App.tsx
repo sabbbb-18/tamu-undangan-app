@@ -7,6 +7,22 @@ import { Search, Plus, Edit2, Trash2, QrCode as QrCodeIcon, Camera, Download, X,
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
+
+async function createGuest(name: string) {
+  try {
+    const response = await fetch('http://localhost:3001/api/guests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name }),
+    });
+    const result = await response.json();
+    return result;
+  } catch (err) {
+    console.error(err);
+  }
+}
 // ========================================
 // FIREBASE CONFIGURATION
 const firebaseConfig = {
@@ -72,7 +88,7 @@ export default function App() {
   });
 
 
-  
+
   // ========================================
   // LOAD GUESTS FROM FIRESTORE
   // ========================================
@@ -114,7 +130,7 @@ export default function App() {
 
 
 
-  
+
   // ========================================
   // FILTER & SEARCH
   // ========================================
@@ -247,7 +263,7 @@ export default function App() {
   };
 
 
-  
+
   // ========================================
   // DELETE GUEST
   // ========================================
@@ -324,13 +340,12 @@ export default function App() {
     setShowScanModal(true);
   };
 
-  const closeScanModal = () => {
-    if (qrScanner) {
-      qrScanner.clear().catch(err => console.error('Error clearing scanner:', err));
-      setQrScanner(null);
-    }
-    setShowScanModal(false);
-  };
+<button
+  onClick={() => setShowScanModal(false)}
+  className="text-gray-400 hover:text-gray-600"
+>
+  <X className="w-6 h-6" />
+</button>
 
   useEffect(() => {
     if (showScanModal && !qrScanner) {
@@ -543,17 +558,17 @@ export default function App() {
                       <td className="px-6 py-4 text-sm text-gray-600">{guest.phone}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${guest.category === 'VIP' ? 'bg-purple-100 text-purple-800' :
-                            guest.category === 'Keluarga' ? 'bg-blue-100 text-blue-800' :
-                              guest.category === 'Teman' ? 'bg-green-100 text-green-800' :
-                                'bg-orange-100 text-orange-800'
+                          guest.category === 'Keluarga' ? 'bg-blue-100 text-blue-800' :
+                            guest.category === 'Teman' ? 'bg-green-100 text-green-800' :
+                              'bg-orange-100 text-orange-800'
                           }`}>
                           {guest.category}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center space-x-1 px-3 py-1 text-xs font-semibold rounded-full ${guest.status === 'sudah-hadir'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
                           }`}>
                           {guest.status === 'sudah-hadir' ? (
                             <>
@@ -797,8 +812,8 @@ export default function App() {
                 <p className="text-gray-600">{selectedGuest.email}</p>
                 <p className="text-gray-600">{selectedGuest.phone}</p>
                 <span className={`inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full ${selectedGuest.status === 'sudah-hadir'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-gray-100 text-gray-800'
                   }`}>
                   {selectedGuest.status === 'sudah-hadir' ? 'Sudah Hadir' : 'Belum Hadir'}
                 </span>
@@ -845,7 +860,7 @@ export default function App() {
         </div>
       )}
 
-      // {/* SCAN MODAL */}
+       {/* SCAN MODAL */}
       {showScanModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
