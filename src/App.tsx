@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, Timestamp, onSnapshot } from 'firebase/firestore';
 import QRCode from 'qrcode';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { Search, Plus, Edit2, Trash2, QrCode as QrCodeIcon, Camera, Download, X, Check, Users, UserCheck, UserX } from 'lucide-react';
+import { Plus, QrCode as QrCodeIcon, Camera, Download, X, Check, Users, MessageSquare, Heart, UserCheck, UserX, Search, Edit2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import GuestTab from './components/GuestTab';
+import RSVPTab from './components/RSVPTab';
+import WishTab from './components/WishTab';
 
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function createGuest(name: string) {
   try {
     const response = await fetch('http://localhost:3001/api/guests', {
@@ -62,6 +65,25 @@ interface Guest {
   checkedInAt?: Date;
 }
 
+interface RSVP {
+  id: string;
+  name: string;
+  attendance: string;
+  guests: number;
+  message: string;
+  guestId: string;
+  timestamp: Date;
+}
+
+interface Wish {
+  id: string;
+  name: string;
+  message: string;
+  timestamp: Date;
+}
+
+type TabType = 'guests' | 'rsvp' | 'wishes';
+
 
 
 
@@ -69,6 +91,10 @@ interface Guest {
 // MAIN APP COMPONENT
 // ========================================
 export default function App() {
+  // Tab state
+  const [activeTab, setActiveTab] = useState<TabType>('guests');
+
+  // Guest states
   const [guests, setGuests] = useState<Guest[]>([]);
   const [filteredGuests, setFilteredGuests] = useState<Guest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,6 +112,22 @@ export default function App() {
     phone: '',
     category: 'Teman' as Guest['category']
   });
+
+  // RSVP states
+  const [rsvpList, setRsvpList] = useState<RSVP[]>([]);
+  const [filteredRSVP, setFilteredRSVP] = useState<RSVP[]>([]);
+  const [rsvpLoading, setRsvpLoading] = useState(true);
+  const [rsvpSearchTerm, setRsvpSearchTerm] = useState('');
+  const [rsvpFilterStatus, setRsvpFilterStatus] = useState<string>('all');
+
+  // Wish states
+  const [wishList, setWishList] = useState<Wish[]>([]);
+  const [filteredWishes, setFilteredWishes] = useState<Wish[]>([]);
+  const [wishLoading, setWishLoading] = useState(true);
+  const [wishSearchTerm, setWishSearchTerm] = useState('');
+
+  // QR Scanner
+  const [qrScanner, setQrScanner] = useState<Html5QrcodeScanner | null>(null);
 
 
 
@@ -124,15 +166,82 @@ export default function App() {
     }
   };
 
+  // ========================================
+  // LOAD RSVP FROM FIRESTORE
+  // ========================================
+  const loadRSVP = () => {
+    try {
+      setRsvpLoading(true);
+      const q = query(collection(db, 'rsvp'), orderBy('timestamp', 'desc'));
+      
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const rsvpData: RSVP[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          rsvpData.push({
+            id: doc.id,
+            name: data.name,
+            attendance: data.attendance,
+            guests: data.guests || 0,
+            message: data.message,
+            guestId: data.guestId,
+            timestamp: data.timestamp.toDate()
+          });
+        });
+        setRsvpList(rsvpData);
+        setFilteredRSVP(rsvpData);
+        setRsvpLoading(false);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error loading RSVP:', error);
+      setRsvpLoading(false);
+    }
+  };
+
+  // ========================================
+  // LOAD WISHES FROM FIRESTORE
+  // ========================================
+  const loadWishes = () => {
+    try {
+      setWishLoading(true);
+      const q = query(collection(db, 'wishes'), orderBy('timestamp', 'desc'));
+      
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const wishesData: Wish[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          wishesData.push({
+            id: doc.id,
+            name: data.name,
+            message: data.message,
+            timestamp: data.timestamp.toDate()
+          });
+        });
+        setWishList(wishesData);
+        setFilteredWishes(wishesData);
+        setWishLoading(false);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error loading wishes:', error);
+      setWishLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadGuests();
+    loadRSVP();
+    loadWishes();
   }, []);
 
 
 
 
   // ========================================
-  // FILTER & SEARCH
+  // FILTER & SEARCH - GUESTS
   // ========================================
   useEffect(() => {
     let filtered = guests;
@@ -155,6 +264,46 @@ export default function App() {
 
     setFilteredGuests(filtered);
   }, [searchTerm, filterCategory, filterStatus, guests]);
+
+  // ========================================
+  // FILTER & SEARCH - RSVP
+  // ========================================
+  useEffect(() => {
+    let filtered = rsvpList;
+
+    if (rsvpSearchTerm) {
+      filtered = filtered.filter(rsvp =>
+        rsvp.name.toLowerCase().includes(rsvpSearchTerm.toLowerCase()) ||
+        rsvp.message.toLowerCase().includes(rsvpSearchTerm.toLowerCase())
+      );
+    }
+
+    if (rsvpFilterStatus !== 'all') {
+      if (rsvpFilterStatus === 'hadir') {
+        filtered = filtered.filter(rsvp => rsvp.attendance !== '0');
+      } else if (rsvpFilterStatus === 'tidak-hadir') {
+        filtered = filtered.filter(rsvp => rsvp.attendance === '0');
+      }
+    }
+
+    setFilteredRSVP(filtered);
+  }, [rsvpSearchTerm, rsvpFilterStatus, rsvpList]);
+
+  // ========================================
+  // FILTER & SEARCH - WISHES
+  // ========================================
+  useEffect(() => {
+    let filtered = wishList;
+
+    if (wishSearchTerm) {
+      filtered = filtered.filter(wish =>
+        wish.name.toLowerCase().includes(wishSearchTerm.toLowerCase()) ||
+        wish.message.toLowerCase().includes(wishSearchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredWishes(filtered);
+  }, [wishSearchTerm, wishList]);
 
   // ========================================
   // GENERATE QR CODE
@@ -330,23 +479,11 @@ export default function App() {
     setShowQRModal(true);
   };
 
-  // ========================================
-  // QR SCANNER
-  // ========================================
-  // QR SCANNER
-  const [qrScanner, setQrScanner] = useState<Html5QrcodeScanner | null>(null);
-
   const openScanModal = () => {
     setShowScanModal(true);
   };
 
-<button
-  onClick={() => setShowScanModal(false)}
-  className="text-gray-400 hover:text-gray-600"
->
-  <X className="w-6 h-6" />
-</button>
-
+  // ========================================
   useEffect(() => {
     if (showScanModal && !qrScanner) {
       setTimeout(() => {
@@ -437,8 +574,8 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* STATISTICS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {/* STATISTICS */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
               <div>
@@ -473,11 +610,11 @@ export default function App() {
                 <UserX className="w-8 h-8 text-orange-600" />
               </div>
             </div>
+            </div>
           </div>
-        </div>
 
-        {/* FILTERS */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+            {/* FILTERS */}
+            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -511,11 +648,11 @@ export default function App() {
               <option value="belum-hadir">Belum Hadir</option>
               <option value="sudah-hadir">Sudah Hadir</option>
             </select>
+            </div>
           </div>
-        </div>
 
-        {/* GUESTS TABLE */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            {/* GUESTS TABLE */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -613,8 +750,8 @@ export default function App() {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+            )}
+          </div>
       </main>
 
       {/* ADD MODAL */}
