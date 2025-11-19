@@ -10,6 +10,7 @@ import GuestTab from './components/GuestTab';
 import RSVPTab from './components/RSVPTab';
 import WishTab from './components/WishTab';
 
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function createGuest(name: string) {
   try {
@@ -125,12 +126,6 @@ export default function App() {
   const [filteredWishes, setFilteredWishes] = useState<Wish[]>([]);
   const [wishLoading, setWishLoading] = useState(true);
   const [wishSearchTerm, setWishSearchTerm] = useState('');
-
-  // QR Scanner
-  const [qrScanner, setQrScanner] = useState<Html5QrcodeScanner | null>(null);
-
-
-
   // ========================================
   // LOAD GUESTS FROM FIRESTORE
   // ========================================
@@ -479,11 +474,23 @@ export default function App() {
     setShowQRModal(true);
   };
 
+  // ========================================
+  // QR SCANNER
+  // ========================================
+  // QR SCANNER
+  const [qrScanner, setQrScanner] = useState<Html5QrcodeScanner | null>(null);
+
   const openScanModal = () => {
     setShowScanModal(true);
   };
 
-  // ========================================
+<button
+  onClick={() => setShowScanModal(false)}
+  className="text-gray-400 hover:text-gray-600"
+>
+  <X className="w-6 h-6" />
+</button>
+
   useEffect(() => {
     if (showScanModal && !qrScanner) {
       setTimeout(() => {
@@ -529,11 +536,66 @@ export default function App() {
     }
   }, [showScanModal, qrScanner, guests]);
   // ========================================
+  // DELETE RSVP
+  // ========================================
+  const handleDeleteRSVP = async (rsvpId: string, rsvpName: string) => {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus RSVP dari ${rsvpName}?`)) return;
+    try {
+      await deleteDoc(doc(db, 'rsvp', rsvpId));
+      alert('✅ RSVP berhasil dihapus!');
+    } catch (error) {
+      console.error('Error deleting RSVP:', error);
+      alert('❌ Gagal menghapus RSVP.');
+    }
+  };
+
+  // ========================================
+  // DELETE WISH
+  // ========================================
+  const handleDeleteWish = async (wishId: string, wishName: string) => {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus ucapan dari ${wishName}?`)) return;
+    try {
+      await deleteDoc(doc(db, 'wishes', wishId));
+      alert('✅ Ucapan berhasil dihapus!');
+    } catch (error) {
+      console.error('Error deleting wish:', error);
+      alert('❌ Gagal menghapus ucapan.');
+    }
+  };
+
+  // ========================================
+  // EXPORT RSVP TO CSV
+  // ========================================
+  const exportRSVPtoCSV = () => {
+    const headers = ['Nama', 'Status Kehadiran', 'Jumlah Tamu', 'Pesan', 'Tanggal'];
+    const rows = filteredRSVP.map(rsvp => [
+      rsvp.name,
+      rsvp.attendance === '0' ? 'Tidak Hadir' : `Hadir (${rsvp.guests} orang)`,
+      rsvp.guests,
+      rsvp.message,
+      format(rsvp.timestamp, 'dd MMM yyyy HH:mm', { locale: id })
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `RSVP_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+  };
+
+  // ========================================
   // STATISTICS
   // ========================================
   const totalGuests = guests.length;
   const attendedGuests = guests.filter(g => g.status === 'sudah-hadir').length;
   const notAttendedGuests = totalGuests - attendedGuests;
+  const totalRSVP = rsvpList.length;
+  const totalWishes = wishList.length;
 
   // ========================================
   // RENDER
@@ -574,6 +636,56 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        
+        {/* TAB NAVIGATION */}
+        <div className="bg-white rounded-xl shadow-md mb-6 p-2">
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setActiveTab('guests')}
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
+                activeTab === 'guests'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <Users className="w-5 h-5" />
+                <span>Tamu ({totalGuests})</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('rsvp')}
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
+                activeTab === 'rsvp'
+                  ? 'bg-green-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <MessageSquare className="w-5 h-5" />
+                <span>RSVP ({totalRSVP})</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('wishes')}
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
+                activeTab === 'wishes'
+                  ? 'bg-purple-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <Heart className="w-5 h-5" />
+                <span>Ucapan ({totalWishes})</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* GUESTS TAB */}
+        {activeTab === 'guests' && (
+          <>
             {/* STATISTICS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
@@ -752,6 +864,35 @@ export default function App() {
             </div>
             )}
           </div>
+          </>
+        )}
+
+        {/* RSVP TAB */}
+        {activeTab === 'rsvp' && (
+          <RSVPTab
+            rsvpList={rsvpList}
+            filteredRSVP={filteredRSVP}
+            rsvpLoading={rsvpLoading}
+            rsvpSearchTerm={rsvpSearchTerm}
+            setRsvpSearchTerm={setRsvpSearchTerm}
+            rsvpFilterStatus={rsvpFilterStatus}
+            setRsvpFilterStatus={setRsvpFilterStatus}
+            handleDeleteRSVP={handleDeleteRSVP}
+            exportRSVPtoCSV={exportRSVPtoCSV}
+          />
+        )}
+
+        {/* WISH WALL TAB */}
+        {activeTab === 'wishes' && (
+          <WishTab
+            wishList={wishList}
+            filteredWishes={filteredWishes}
+            wishLoading={wishLoading}
+            wishSearchTerm={wishSearchTerm}
+            setWishSearchTerm={setWishSearchTerm}
+            handleDeleteWish={handleDeleteWish}
+          />
+        )}
       </main>
 
       {/* ADD MODAL */}
