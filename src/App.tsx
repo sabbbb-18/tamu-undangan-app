@@ -62,14 +62,14 @@ const INVITATION_BASE_URL = 'http://localhost:3000/invitation'; // Local develop
 interface Guest {
   id: string;
   name: string;
-  email: string;
   phone: string;
-  category: 'VIP' | 'Keluarga' | 'Teman' | 'Rekan Kerja' | 'Rekann Keluarga';
+  category: 'VIP' | 'Keluarga' | 'Teman' | 'Rekan Kerja';
   status: 'belum-hadir' | 'sudah-hadir';
   qrCode: string;
   createdAt: Date;
   checkedInAt?: Date;
 }
+
 
 interface RSVP {
   id: string;
@@ -126,7 +126,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
     phone: '',
     category: 'Teman' as Guest['category']
   });
@@ -158,7 +157,6 @@ export default function App() {
         guestsData.push({
           id: doc.id,
           name: data.name,
-          email: data.email,
           phone: data.phone,
           category: data.category,
           status: data.status,
@@ -264,7 +262,6 @@ useEffect(() => {
     if (searchTerm) {
       filtered = filtered.filter(guest =>
         guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        guest.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         guest.phone.includes(searchTerm)
       );
     }
@@ -351,7 +348,7 @@ useEffect(() => {
   const handleAddGuest = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.email || !formData.phone) {
+    if (!formData.name || !formData.phone) {
       alert('Mohon lengkapi semua data!');
       return;
     }
@@ -359,7 +356,6 @@ useEffect(() => {
     try {
       const docRef = await addDoc(collection(db, 'guests'), {
         name: formData.name,
-        email: formData.email,
         phone: formData.phone,
         category: formData.category,
         status: 'belum-hadir',
@@ -379,10 +375,9 @@ useEffect(() => {
       // 🎉 BARU: Tampilkan popup dengan URL undangan yang bisa di-copy
       const message = `✅ Tamu berhasil ditambahkan!\n\n` +
         `👤 Nama: ${formData.name}\n` +
-        `📧 Email: ${formData.email}\n\n` +
         `🔗 URL Undangan:\n${invitationUrl}\n\n` +
         `📋 URL sudah di-copy ke clipboard!\n` +
-        `Kirim URL ini ke ${formData.name} via WhatsApp/Email.`;
+        `Kirim URL ini ke ${formData.name} via WhatsApp.`;
 
       // Copy URL ke clipboard
       navigator.clipboard.writeText(invitationUrl).then(() => {
@@ -392,7 +387,7 @@ useEffect(() => {
       });
 
       setShowAddModal(false);
-      setFormData({ name: '', email: '', phone: '', category: 'Teman' });
+      setFormData({ name: '', phone: '', category: 'Teman' });
       loadGuests();
     } catch (error) {
       console.error('Error adding guest:', error);
@@ -411,7 +406,6 @@ useEffect(() => {
     try {
       await updateDoc(doc(db, 'guests', selectedGuest.id), {
         name: formData.name,
-        email: formData.email,
         phone: formData.phone,
         category: formData.category
       });
@@ -482,7 +476,6 @@ useEffect(() => {
     setSelectedGuest(guest);
     setFormData({
       name: guest.name,
-      email: guest.email,
       phone: guest.phone,
       category: guest.category
     });
@@ -759,7 +752,7 @@ if (!user) {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    placeholder="Cari nama, email, atau telepon..."
+                    placeholder="Cari nama, atau telepon..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -814,7 +807,6 @@ if (!user) {
                     <thead className="bg-gray-50 border-b-2 border-gray-200">
                       <tr>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nama</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Telepon</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Kategori</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
@@ -830,7 +822,6 @@ if (!user) {
                               {format(guest.createdAt, 'dd MMM yyyy', { locale: id })}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{guest.email}</td>
                           <td className="px-6 py-4 text-sm text-gray-600">{guest.phone}</td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${guest.category === 'VIP' ? 'bg-purple-100 text-purple-800' :
@@ -950,18 +941,6 @@ if (!user) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Contoh: john@email.com"
-                  required
-                />
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">No. Telepon</label>
                 <input
                   type="tel"
@@ -1028,17 +1007,6 @@ if (!user) {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
@@ -1114,7 +1082,6 @@ if (!user) {
 
               <div className="mb-4">
                 <h3 className="text-xl font-bold text-gray-900">{selectedGuest.name}</h3>
-                <p className="text-gray-600">{selectedGuest.email}</p>
                 <p className="text-gray-600">{selectedGuest.phone}</p>
                 <span className={`inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full ${selectedGuest.status === 'sudah-hadir'
                   ? 'bg-green-100 text-green-800'
@@ -1149,7 +1116,7 @@ if (!user) {
                   onClick={() => {
                     const invitationUrl = `${INVITATION_BASE_URL}/${selectedGuest.id}`;
                     navigator.clipboard.writeText(invitationUrl).then(() => {
-                      alert(`✅ URL Undangan berhasil di-copy!\n\n${invitationUrl}\n\nKirim URL ini ke ${selectedGuest.name} via WhatsApp/Email.`);
+                      alert(`✅ URL Undangan berhasil di-copy!\n\n${invitationUrl}\n\nKirim URL ini ke ${selectedGuest.name} via WhatsApp.`);
                     }).catch(() => {
                       alert(`📋 Copy URL ini:\n\n${invitationUrl}`);
                     });
