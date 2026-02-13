@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import Login from './components/Login';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, Timestamp, onSnapshot } from 'firebase/firestore';
@@ -104,13 +104,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('guests');
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    setUser(currentUser);
-    setAuthLoading(false);
-  });
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
 
-  return () => unsubscribe();
-}, []);
+    return () => unsubscribe();
+  }, []);
 
   // Guest states
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -241,13 +241,13 @@ export default function App() {
     }
   };
 
-useEffect(() => {
-  if (user) {
-    loadGuests();
-    loadRSVP();
-    loadWishes();
-  }
-}, [user]);
+  useEffect(() => {
+    if (user) {
+      loadGuests();
+      loadRSVP();
+      loadWishes();
+    }
+  }, [user]);
 
 
 
@@ -615,12 +615,12 @@ useEffect(() => {
   // ========================================
 
   if (authLoading) {
-  return <div className="p-10 text-center">Loading...</div>;
-}
+    return <div className="p-10 text-center">Loading...</div>;
+  }
 
-if (!user) {
-  return <Login />;
-}
+  if (!user) {
+    return <Login />;
+  }
 
 
   return (
@@ -653,6 +653,14 @@ if (!user) {
                 <Camera className="w-5 h-5" />
                 <span className="font-semibold">Scan QR</span>
               </button>
+
+              <button
+                onClick={() => signOut(auth)}
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl"
+              >
+                Logout
+              </button>
+
             </div>
           </div>
         </div>
@@ -667,8 +675,8 @@ if (!user) {
             <button
               onClick={() => setActiveTab('guests')}
               className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${activeTab === 'guests'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
             >
               <div className="flex items-center justify-center space-x-2">
@@ -679,8 +687,8 @@ if (!user) {
             <button
               onClick={() => setActiveTab('rsvp')}
               className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${activeTab === 'rsvp'
-                  ? 'bg-green-600 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
             >
               <div className="flex items-center justify-center space-x-2">
@@ -691,8 +699,8 @@ if (!user) {
             <button
               onClick={() => setActiveTab('wishes')}
               className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${activeTab === 'wishes'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-purple-600 text-white shadow-lg'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
             >
               <div className="flex items-center justify-center space-x-2">
