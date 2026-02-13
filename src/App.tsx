@@ -243,11 +243,14 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
+useEffect(() => {
+  if (user) {
     loadGuests();
     loadRSVP();
     loadWishes();
-  }, []);
+  }
+}, [user]);
+
 
 
 
