@@ -51,9 +51,9 @@ const auth = getAuth(app);
 // ========================================
 // INVITATION URL CONFIGURATION
 // ========================================
-// 🔧 EDIT INI: Ganti dengan URL web undangan Anda setelah deploy
-const INVITATION_BASE_URL = 'http://localhost:3000/invitation'; // Local development
-// const INVITATION_BASE_URL = 'https://your-wedding.vercel.app/invitation'; // Production (uncomment setelah deploy)
+// URL production undangan
+const INVITATION_BASE_URL = 'https://wedding-invitation-jlcualeuh-mushabs-projects-5c82ed1c.vercel.app';
+
 
 
 // ========================================
