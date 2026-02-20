@@ -52,7 +52,7 @@ const auth = getAuth(app);
 // INVITATION URL CONFIGURATION
 // ========================================
 // URL production undangan
-const INVITATION_BASE_URL = 'https://wedding-invitation-jlcualeuh-mushabs-projects-5c82ed1c.vercel.app';
+const INVITATION_BASE_URL = 'https://wedding-invitation-jlcualeuh-mushabs-projects-5c82ed1c.vercel.app/invitation';
 
 
 
